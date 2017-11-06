@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <script data-require="jquery@3.0.0" data-semver="3.0.0" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0/jquery.js"></script>
+    <script data-require="highcharts@4.2.4" data-semver="4.2.4" src="https://code.highcharts.com/4.2.4/highcharts.js"></script>
+    <link rel="stylesheet" href="style.css" />
+    
+  </head>
+
+  <body>
+    <h1>Charts</h1>
+    <div id="div-chart1"></div>
+    <div id="div-chart2"></div>
+      <script type="text/javascript">
+              $(function() {
+        // make a jQuery AJAX call to API 1
+        var api1 = 'https://api.flickr.com/services/rest/?method=flickr.photos.search&format=json&nojsoncallback=1&api_key=4ac14b39a202f841db6890b4b19ce947&tags=baseball';
+        var api2 = 'https://api.flickr.com/services/rest/?method=flickr.photos.search&format=json&nojsoncallback=1&api_key=4ac14b39a202f841db6890b4b19ce947&tags=football';
+
+        /*
+            Asynchronous ajax call success function
+            */
+
+        $.ajax({
+          url: api1,
+          success: function(result) {
+            // build object to render in chart 
+            /*
+              result.photos.photo is an Array that contains all of data
+              */
+            data1 = findCount(result.photos.photo);
+            // render the chart with object data and id 
+            render(data1, 1);
+          }
+        });
+
+        $.ajax({
+          url: api2,
+          success: function(result) {
+            data2 = findCount(result.photos.photo);
+            render(data2, 2)
+          }
+        });
+        /*
+
+
+              */
+        function findCount(data) {
+          //access photo array
+          var innerData = [];
+          var outerData = [];
+          var plotData = [];
+          var titleCount = {};
+          var titleName = {};
+          var titleNameSort = {};
+          var colors = Highcharts.getOptions().colors;
+          
+          //get the first 30 photos
+
+          for (var i = 0; i < 30; i++) {
+            //if titleCount doesn't have title, build a new one
+            if (!titleCount[data[i].title.length]) {
+              titleCount[data[i].title.length] = 1;
+              //if have, ++
+            } else {
+              titleCount[data[i].title.length]++;
+            }
+          }
+          for (var i = 0; i < 30; i++) {
+            //if titleName doesn't have title, build a new one
+            if (!titleName[data[i].title]) {
+              titleName[data[i].title] = 1;
+              //if have, ++
+            } else {
+              titleName[data[i].title]++;
+            }
+          }
+          Object.keys(titleName).sort(function(a, b){
+          return a.length - b.length;
+          }).forEach(function(key){
+          titleNameSort[key] = titleName[key];
+          });
+          /*
+              titleCount : {
+                {title1: 5},
+                {title2: 10},
+              }
+              object.key(titleCount) = ['title1','title2']
+                */
+          for (var k = 0; k < Object.keys(titleCount).length; k++) {
+            innerData.push({
+              name: Object.keys(titleCount)[k],
+              y: Object.values(titleCount)[k],
+              color: colors[k%10]
+            });
+          }
+          
+              for (var j = 0; j < Object.keys(titleNameSort).length; j++) {
+              var brightness = 0.15+ 0.05*Math.cos(j*(Math.PI)/3);
+            outerData.push({
+              name: Object.keys(titleNameSort)[j],
+              y: Object.values(titleNameSort)[j],
+              color: Highcharts.Color(getColor(j)).brighten(brightness).get()
+            });
+            }
+          function getColor(j){
+          return innerData.filter(function(item){
+            return item.name == Object.keys(titleNameSort)[j].length
+          })[0].color;
+      }
+          // is an array of ojbect
+          return [innerData, outerData];
+        };
+
+        function render(data, id) {
+          $('#div-chart' + id).highcharts({
+            chart: {
+              type: 'pie'
+            },
+            title: {
+              text: 'Propeller Interview prepared by Frida Wang'
+            },
+            subtitle: {
+              text: 'Source: <a href="https://www.flickr.com/m/">flickr.com</a>'
+            },
+            yAxis: {
+              title: {
+                text: 'Pic title length count'
+              }
+            },
+            plotOptions: {
+              pie: {
+                shadow: false,
+                center: ['50%', '50%']
+              }
+            },
+            tooltip: {
+            },
+            series: [{
+              name: 'title length count',
+              data: data[0],
+              size: '60%',
+              dataLabels: {
+                formatter: function() {
+                  return this.y > 5 ? this.point.name : null;
+                },
+                color: '#ffffff',
+                distance: -30
+              }
+            }, {
+              name: 'Details of title name',
+              data: data[1],
+              size: '80%',
+              innerSize: '60%',
+              dataLabels: {
+                formatter: function() {
+                  // display only if larger than 1
+                  return this.y >= 1 ? '<b>' + this.point.name + ':</b> ' +
+                    this.y: null;
+                }
+              },
+              id: 'Details'
+            }],
+            responsive: {
+              rules: [{
+                condition: {
+                  maxWidth: 400
+                },
+                chartOptions: {
+                  series: [{
+                    id: 'Details',
+                    dataLabels: {
+                      enabled: false
+                    }
+                  }]
+                }
+              }]
+            }
+          });
+        }
+
+      });
+      </script>
+  </body>
+
+</html>
